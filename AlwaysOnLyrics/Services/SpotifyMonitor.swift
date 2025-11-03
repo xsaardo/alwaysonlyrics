@@ -1,5 +1,7 @@
 import Foundation
 import Combine
+import AppKit
+import CoreServices
 
 class SpotifyMonitor: ObservableObject {
     @Published var currentTrack: Track?
@@ -47,40 +49,45 @@ class SpotifyMonitor: ObservableObject {
     }
 
     private func getSpotifyTrackInfo() -> Track? {
-        let script = """
-        tell application "System Events"
-            set isRunning to (name of processes) contains "Spotify"
-        end tell
+        // Use the helper script from Application Scripts directory
+        // This bypasses the permission issues with NSAppleScript
+        let scriptURL = URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library")
+            .appendingPathComponent("Application Scripts")
+            .appendingPathComponent("com.xsaardo.AlwaysOnLyrics")
+            .appendingPathComponent("GetSpotifyTrack.scpt")
 
-        if isRunning then
-            tell application "Spotify"
-                try
-                    set trackName to name of current track
-                    set artistName to artist of current track
-                    set isPlaying to player state is playing
-                    return trackName & "|" & artistName & "|" & isPlaying
-                on error
-                    return ""
-                end try
-            end tell
-        else
-            return ""
-        end if
-        """
-
-        guard let appleScript = NSAppleScript(source: script) else {
+        guard FileManager.default.fileExists(atPath: scriptURL.path) else {
             return nil
         }
 
-        var error: NSDictionary?
-        let result = appleScript.executeAndReturnError(&error)
-
-        if let error = error {
-            print("AppleScript error: \(error)")
+        // Use NSUserAppleScriptTask for sandboxed execution
+        guard let scriptTask = try? NSUserAppleScriptTask(url: scriptURL) else {
             return nil
         }
 
-        guard let output = result.stringValue, !output.isEmpty else {
+        // Create a semaphore to wait for async result
+        let semaphore = DispatchSemaphore(value: 0)
+        var resultString: String?
+        var executionError: Error?
+
+        scriptTask.execute(withAppleEvent: nil) { result, error in
+            if let error = error {
+                executionError = error
+            } else if let result = result {
+                resultString = result.stringValue
+            }
+            semaphore.signal()
+        }
+
+        // Wait for completion (with timeout)
+        _ = semaphore.wait(timeout: .now() + 2.0)
+
+        if executionError != nil {
+            return nil
+        }
+
+        guard let output = resultString, !output.isEmpty else {
             return nil
         }
 

@@ -31,10 +31,11 @@ class LyricsWindow: NSWindow {
 
         // Wrap SwiftUI view in NSHostingView
         let hostingView = NSHostingView(rootView: lyricsView)
+        hostingView.autoresizingMask = [.width, .height]
         self.contentView = hostingView
 
-        // Setup visual effect background
-        setupVisualEffectBackground()
+        // DON'T setup visual effect background - it breaks SwiftUI rendering
+        // setupVisualEffectBackground()
 
         // Restore visibility state
         let shouldBeVisible = userDefaultsManager.loadWindowVisible()

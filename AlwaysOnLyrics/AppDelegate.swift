@@ -34,6 +34,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         spotifyMonitor.stopMonitoring()
     }
 
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        return true
+    }
+
+    func application(_ application: NSApplication, willEncodeRestorableState coder: NSCoder) {
+        // Don't save any restorable state
+    }
+
+    func application(_ application: NSApplication, didDecodeRestorableState coder: NSCoder) {
+        // Don't restore any state
+    }
+
     // MARK: - Services Setup
     private func setupServices() {
         spotifyMonitor = SpotifyMonitor()
@@ -89,6 +101,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Set window delegate to handle close events
         lyricsWindow?.delegate = self
+
+        // Make sure window is visible
+        if lyricsWindow?.isVisible == false {
+            lyricsWindow?.show()
+        }
     }
 
     // MARK: - Keyboard Shortcuts

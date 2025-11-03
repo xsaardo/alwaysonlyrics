@@ -67,8 +67,13 @@ class UserDefaultsManager {
         defaults.set(visible, forKey: Keys.windowVisible)
     }
 
-    /// Load window visibility state (defaults to false)
+    /// Load window visibility state (defaults to true on first launch)
     func loadWindowVisible() -> Bool {
+        // Check if the key exists - if not, this is first launch
+        if defaults.object(forKey: Keys.windowVisible) == nil {
+            // First launch - show window by default
+            return true
+        }
         return defaults.bool(forKey: Keys.windowVisible)
     }
 
