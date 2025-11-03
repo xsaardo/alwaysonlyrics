@@ -24,6 +24,8 @@
     <true/>
     <key>NSAppleEventsUsageDescription</key>
     <string>This app needs to access Spotify to detect currently playing tracks.</string>
+    <key>NSAppleScriptEnabled</key>
+    <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

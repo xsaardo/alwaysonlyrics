@@ -18,7 +18,7 @@ struct LyricsView: View {
     // MARK: - Body
     var body: some View {
         ZStack {
-            // Background color
+            // Background with blur effect
             Color.black.opacity(0.85)
                 .ignoresSafeArea()
 
@@ -149,28 +149,43 @@ struct LyricsView: View {
     // MARK: - Lyrics View
     private var lyricsView: some View {
         Text(lyrics)
-            .font(.body)
+            .font(.system(size: 14))
             .foregroundColor(.white)
-            .lineSpacing(4)
+            .lineSpacing(6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .textSelection(.enabled)
     }
 
     // MARK: - Track Change Handler
     private func handleTrackChange(_ newTrack: Track?) {
-        currentTrack = newTrack
-        lyrics = ""
-        errorMessage = nil
-
-        guard let track = newTrack, track.isPlaying else {
-            // If track is paused or nil, keep showing last lyrics
+        guard let track = newTrack else {
+            // No track available, clear everything
+            currentTrack = nil
+            lyrics = ""
+            errorMessage = nil
             return
         }
 
-        // Fetch lyrics for new track
-        Task {
-            await fetchLyrics(for: track)
+        // Check if this is a different song (not just play/pause state change)
+        let isDifferentSong = currentTrack?.title != track.title ||
+                             currentTrack?.artist != track.artist
+
+        currentTrack = track
+
+        if isDifferentSong {
+            // New song: clear old lyrics and fetch new ones
+            lyrics = ""
+            errorMessage = nil
+            Task {
+                await fetchLyrics(for: track)
+            }
+        } else if lyrics.isEmpty && errorMessage == nil {
+            // Same song but no lyrics loaded yet: fetch them
+            Task {
+                await fetchLyrics(for: track)
+            }
         }
+        // If same song and lyrics already loaded: keep them (don't refetch)
     }
 
     // MARK: - Fetch Lyrics
