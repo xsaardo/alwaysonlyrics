@@ -1,0 +1,40 @@
+{
+  "customInstructions": "This is AlwaysOnLyrics, a macOS menu bar app for displaying synchronized lyrics from Spotify. The app uses Swift, SwiftUI, and integrates with Spotify via AppleScript/ScriptingBridge. Key components:\n\n- Services/SpotifyMonitor.swift: Monitors Spotify playback state\n- Services/LyricsService.swift: Fetches lyrics from Genius\n- Models/: Data models for tracks and lyrics\n- Views/: SwiftUI views for the UI\n\nThe project is transitioning to App Store compatibility, using a hybrid approach for Spotify monitoring.",
+
+  "allowedDirectories": [
+    "AlwaysOnLyrics",
+    "AlwaysOnLyricsTests",
+    "AlwaysOnLyricsUITests"
+  ],
+
+  "ignoredDirectories": [
+    ".build",
+    "build",
+    "DerivedData",
+    ".git",
+    "xcuserdata",
+    "Pods",
+    "Carthage/Build",
+    "~"
+  ],
+
+  "ignoredFiles": [
+    "*.xcodeproj",
+    "*.xcworkspace",
+    ".DS_Store",
+    "*.profraw",
+    "Package.resolved",
+    "config.json",
+    ".env"
+  ],
+
+  "alwaysAllowedDirectories": [
+    ".claude"
+  ],
+
+  "experimental": {
+    "modelSelection": {
+      "preferSonnet": true
+    }
+  }
+}
