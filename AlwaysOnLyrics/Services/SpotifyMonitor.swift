@@ -98,7 +98,6 @@ class SpotifyMonitor: ObservableObject {
         """
 
         guard let appleScript = NSAppleScript(source: script) else {
-            print("DEBUG: Failed to create NSAppleScript")
             return nil
         }
 
@@ -106,43 +105,33 @@ class SpotifyMonitor: ObservableObject {
         let result = appleScript.executeAndReturnError(&error)
 
         if let error = error {
-            print("DEBUG: AppleScript error: \(error)")
             return nil
         }
 
         guard let output = result.stringValue else {
-            print("DEBUG: No string value in result")
             return nil
         }
 
-        print("DEBUG: AppleScript returned: '\(output)'")
-
         if output.isEmpty {
-            print("DEBUG: Empty result")
             return nil
         }
 
         if output == "NOT_RUNNING" {
-            print("DEBUG: Spotify not running")
             return nil
         }
 
         if output.hasPrefix("ERROR:") {
-            print("DEBUG: AppleScript error: \(output)")
             return nil
         }
 
         let components = output.components(separatedBy: "|")
         guard components.count == 3 else {
-            print("DEBUG: Unexpected component count: \(components.count), components: \(components)")
             return nil
         }
 
         let title = components[0]
         let artist = components[1]
         let isPlaying = components[2] == "true"
-
-        print("DEBUG: Parsed track - title: '\(title)', artist: '\(artist)', isPlaying: \(isPlaying)")
 
         return Track(title: title, artist: artist, isPlaying: isPlaying)
     }
