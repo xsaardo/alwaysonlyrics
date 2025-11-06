@@ -63,11 +63,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let appleScript = NSAppleScript(source: script)
         var error: NSDictionary?
         appleScript?.executeAndReturnError(&error)
-
-        if let error = error {
-            print("Automation permission needed: \(error)")
-            print("Please grant AlwaysOnLyrics permission to control Spotify in System Settings > Privacy & Security > Automation")
-        }
     }
 
     // MARK: - Services Setup
