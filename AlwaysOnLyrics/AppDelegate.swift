@@ -13,6 +13,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - App Lifecycle
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Request automation permission explicitly
+        requestAutomationPermission()
+
         // Initialize services
         setupServices()
 
@@ -44,6 +47,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func application(_ application: NSApplication, didDecodeRestorableState coder: NSCoder) {
         // Don't restore any state
+    }
+
+    // MARK: - Automation Permission
+    private func requestAutomationPermission() {
+        // This will trigger the permission dialog if not already granted
+        let script = """
+        tell application "Spotify"
+            if it is running then
+                return "running"
+            end if
+        end tell
+        """
+
+        let appleScript = NSAppleScript(source: script)
+        var error: NSDictionary?
+        appleScript?.executeAndReturnError(&error)
     }
 
     // MARK: - Services Setup

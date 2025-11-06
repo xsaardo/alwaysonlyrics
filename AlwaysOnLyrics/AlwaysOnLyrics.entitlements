@@ -4,19 +4,18 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<false/>
+	<key>com.apple.security.network.client</key>
+	<true/>
 	<key>com.apple.security.automation.apple-events</key>
 	<true/>
 	<key>com.apple.security.files.user-selected.read-only</key>
 	<true/>
 	<key>com.apple.security.scripting-targets</key>
 	<dict>
-		<key>com.apple.systemevents</key>
-		<array>
-			<string>com.apple.systemevents</string>
-		</array>
 		<key>com.spotify.client</key>
 		<array>
 			<string>com.spotify.client</string>
+			<string>com.spotify.playback</string>
 		</array>
 	</dict>
 </dict>
