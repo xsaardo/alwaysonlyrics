@@ -481,3 +481,4 @@ Custom workflows created for this project:
 
 *Document last updated: 2025-11-05*
 *Project: AlwaysOnLyrics v1.0 (App Store Compatibility Branch)*
+- when trying to verify if the project builds, defer to the user to run it from xcode
