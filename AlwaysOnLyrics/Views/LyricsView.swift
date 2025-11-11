@@ -47,32 +47,95 @@ struct LyricsView: View {
 
     // MARK: - Header View
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 12) {
             if let track = currentTrack {
-                Text(track.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
+                // Album artwork
+                albumArtworkView(for: track)
 
-                Text(track.artist)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
+                // Track info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(track.title)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+
+                    Text("\(track.artist) • \(track.album)")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .lineLimit(1)
+                }
             } else if !spotifyMonitor.spotifyRunning {
-                Text("Spotify Not Running")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                // Fallback icon when Spotify not running
+                Image(systemName: "music.note")
+                    .font(.system(size: 32))
+                    .foregroundColor(.gray)
+                    .frame(width: 60, height: 60)
+
+                VStack(alignment: .leading) {
+                    Text("Spotify Not Running")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                }
             } else {
-                Text("No Track Playing")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                // Fallback icon when no track playing
+                Image(systemName: "music.note")
+                    .font(.system(size: 32))
+                    .foregroundColor(.gray)
+                    .frame(width: 60, height: 60)
+
+                VStack(alignment: .leading) {
+                    Text("No Track Playing")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
+    }
+
+    // MARK: - Album Artwork View
+    private func albumArtworkView(for track: Track) -> some View {
+        Group {
+            if let artworkURLString = track.artworkURL,
+               let artworkURL = URL(string: artworkURLString) {
+                AsyncImage(url: artworkURL) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(width: 60, height: 60)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    case .failure:
+                        placeholderArtwork
+                    @unknown default:
+                        placeholderArtwork
+                    }
+                }
+            } else {
+                placeholderArtwork
+            }
+        }
+    }
+
+    // MARK: - Placeholder Artwork
+    private var placeholderArtwork: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 60, height: 60)
+
+            Image(systemName: "music.note")
+                .font(.system(size: 28))
+                .foregroundColor(.gray)
+        }
     }
 
     // MARK: - Content View
@@ -168,7 +231,8 @@ struct LyricsView: View {
 
         // Check if this is a different song (not just play/pause state change)
         let isDifferentSong = currentTrack?.title != track.title ||
-                             currentTrack?.artist != track.artist
+                             currentTrack?.artist != track.artist ||
+                             currentTrack?.album != track.album
 
         currentTrack = track
 
