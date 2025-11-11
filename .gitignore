@@ -72,6 +72,8 @@ config.json
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.dmg
+dmg_temp/
 
 ## Profiling
 *.profraw
