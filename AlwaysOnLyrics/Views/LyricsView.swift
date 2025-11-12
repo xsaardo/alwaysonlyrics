@@ -14,6 +14,7 @@ struct LyricsView: View {
     @State private var lyrics: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
+    @State private var currentFetchTask: Task<Void, Never>?
 
     // MARK: - Body
     var body: some View {
@@ -220,6 +221,10 @@ struct LyricsView: View {
 
     // MARK: - Track Change Handler
     private func handleTrackChange(_ newTrack: Track?) {
+        // Cancel any in-flight lyrics fetch
+        currentFetchTask?.cancel()
+        currentFetchTask = nil
+
         guard let track = newTrack else {
             // No track available, clear everything
             currentTrack = nil
@@ -239,16 +244,24 @@ struct LyricsView: View {
             // New song: clear old lyrics and fetch new ones
             lyrics = ""
             errorMessage = nil
-            Task {
+            currentFetchTask = Task {
                 await fetchLyrics(for: track)
             }
         } else if lyrics.isEmpty && errorMessage == nil {
             // Same song but no lyrics loaded yet: fetch them
-            Task {
+            currentFetchTask = Task {
                 await fetchLyrics(for: track)
             }
         }
         // If same song and lyrics already loaded: keep them (don't refetch)
+    }
+
+    // MARK: - Helper Methods
+    private func isCurrentTrack(_ track: Track) -> Bool {
+        !Task.isCancelled &&
+        currentTrack?.title == track.title &&
+        currentTrack?.artist == track.artist &&
+        currentTrack?.album == track.album
     }
 
     // MARK: - Fetch Lyrics
@@ -264,21 +277,39 @@ struct LyricsView: View {
                 duration: track.duration
             )
 
+            // Check if task was cancelled or track changed before updating UI
+            guard isCurrentTrack(track) else {
+                return
+            }
+
             await MainActor.run {
                 self.lyrics = fetchedLyrics
                 self.isLoading = false
             }
         } catch LyricsError.trackNotFound {
+            // Only show error if this is still the current track
+            guard isCurrentTrack(track) else {
+                return
+            }
+
             await MainActor.run {
                 self.errorMessage = "Lyrics not available for this track"
                 self.isLoading = false
             }
         } catch LyricsError.noLyricsAvailable {
+            guard isCurrentTrack(track) else {
+                return
+            }
+
             await MainActor.run {
                 self.errorMessage = "No lyrics available for this track"
                 self.isLoading = false
             }
         } catch {
+            guard isCurrentTrack(track) else {
+                return
+            }
+
             await MainActor.run {
                 self.errorMessage = "Failed to fetch lyrics: \(error.localizedDescription)"
                 self.isLoading = false
