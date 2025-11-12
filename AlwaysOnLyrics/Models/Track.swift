@@ -4,6 +4,7 @@ struct Track: Equatable {
     let title: String
     let artist: String
     let album: String
+    let duration: Int? // Duration in seconds
     let artworkURL: String?
     let isPlaying: Bool
 

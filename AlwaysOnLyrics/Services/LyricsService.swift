@@ -1,77 +1,86 @@
 import Foundation
 
 enum LyricsError: Error, LocalizedError {
-    case invalidAccessToken
-    case songNotFound(artist: String, title: String)
-    case failedToFetchHTML
-    case failedToExtractLyrics
+    case trackNotFound(artist: String, title: String)
+    case noLyricsAvailable
     case networkError(Error)
+    case apiError(String)
 
     var errorDescription: String? {
         switch self {
-        case .invalidAccessToken:
-            return "Genius API access token is invalid or missing"
-        case .songNotFound(let artist, let title):
-            return "Song \"\(title)\" by \(artist) not found on Genius"
-        case .failedToFetchHTML:
-            return "Failed to fetch lyrics page from Genius"
-        case .failedToExtractLyrics:
-            return "Failed to extract lyrics from page"
+        case .trackNotFound(let artist, let title):
+            return "Lyrics not found for \"\(title)\" by \(artist)"
+        case .noLyricsAvailable:
+            return "No lyrics available for this track"
         case .networkError(let error):
             return "Network error: \(error.localizedDescription)"
+        case .apiError(let message):
+            return "LRCLIB error: \(message)"
         }
     }
 }
 
-/// Main service for fetching lyrics
-/// Refactored with dependency injection for testability
+/// Main service for fetching lyrics from LRCLIB
 class LyricsService {
-    private let accessToken: String
-    private let apiClient: GeniusAPIClientProtocol
-    private let htmlParser: HTMLParser
+    private let apiClient: LRCLIBAPIClientProtocol
 
     /// Initialize with dependencies (supports dependency injection for testing)
-    init(
-        accessToken: String = Config.geniusAccessToken,
-        apiClient: GeniusAPIClientProtocol? = nil,
-        htmlParser: HTMLParser? = nil
-    ) {
-        self.accessToken = accessToken
-
-        // Use provided dependencies or create default ones
-        if let apiClient = apiClient {
-            self.apiClient = apiClient
-        } else {
-            // Create default API client with the access token
-            self.apiClient = GeniusAPIClient(accessToken: accessToken)
-        }
-
-        self.htmlParser = htmlParser ?? GeniusHTMLParser()
+    init(apiClient: LRCLIBAPIClientProtocol? = nil) {
+        self.apiClient = apiClient ?? LRCLIBAPIClient()
     }
 
     /// Fetch lyrics for a given track
-    func fetchLyrics(artist: String, songTitle: String) async throws -> String {
-        guard !accessToken.isEmpty && !accessToken.hasPrefix("ERROR_") else {
-            throw LyricsError.invalidAccessToken
+    /// - Parameters:
+    ///   - artist: Artist name
+    ///   - songTitle: Track title
+    ///   - album: Album name
+    ///   - duration: Track duration in seconds (optional but recommended for accuracy)
+    /// - Returns: Plain text lyrics
+    func fetchLyrics(artist: String, songTitle: String, album: String, duration: Int?) async throws -> String {
+        do {
+            // Step 1: Try to get lyrics with exact signature
+            let track = try await apiClient.getLyrics(
+                artist: artist,
+                trackName: songTitle,
+                albumName: album,
+                duration: duration
+            )
+
+            // Return lyrics if available
+            if let lyrics = track.lyrics {
+                return lyrics
+            } else {
+                throw LyricsError.noLyricsAvailable
+            }
+
+        } catch LRCLIBAPIError.trackNotFound {
+            // Step 2: Fallback to search if exact match not found
+            do {
+                let searchResults = try await apiClient.searchLyrics(
+                    artist: artist,
+                    trackName: songTitle
+                )
+
+                // Use first result
+                guard let firstResult = searchResults.first else {
+                    throw LyricsError.trackNotFound(artist: artist, title: songTitle)
+                }
+
+                if let lyrics = firstResult.lyrics {
+                    return lyrics
+                } else {
+                    throw LyricsError.noLyricsAvailable
+                }
+
+            } catch {
+                // Search also failed
+                throw LyricsError.trackNotFound(artist: artist, title: songTitle)
+            }
+
+        } catch let error as LRCLIBAPIError {
+            throw LyricsError.apiError(error.localizedDescription)
+        } catch {
+            throw LyricsError.networkError(error)
         }
-
-        // Step 1: Search for the song
-        let query = "\(songTitle) \(artist)"
-        let songs = try await apiClient.searchSongs(query: query)
-
-        guard let firstSong = songs.first else {
-            throw LyricsError.songNotFound(artist: artist, title: songTitle)
-        }
-
-        // Step 2: Fetch HTML from the song's page
-        let html = try await apiClient.fetchPageHTML(url: firstSong.url)
-
-        // Step 3: Extract lyrics from HTML
-        let extractedHTML = try htmlParser.extractLyrics(from: html)
-
-        // Step 4: Clean HTML to plain text
-        let cleanedLyrics = HTMLCleaner.cleanLyricsHTML(extractedHTML)
-
-        return cleanedLyrics
     }
 }

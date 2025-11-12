@@ -180,14 +180,13 @@ struct LyricsView: View {
 
     // MARK: - Loading View
     private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                .scaleEffect(1.5)
+        VStack(spacing: 20) {
+            CustomSpinner()
+                .frame(width: 40, height: 40)
 
             Text("Fetching lyrics...")
                 .font(.body)
-                .foregroundColor(.gray)
+                .foregroundColor(.white.opacity(0.9))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, 60)
@@ -260,29 +259,51 @@ struct LyricsView: View {
         do {
             let fetchedLyrics = try await lyricsService.fetchLyrics(
                 artist: track.artist,
-                songTitle: track.title
+                songTitle: track.title,
+                album: track.album,
+                duration: track.duration
             )
 
             await MainActor.run {
                 self.lyrics = fetchedLyrics
                 self.isLoading = false
             }
-        } catch LyricsError.songNotFound {
+        } catch LyricsError.trackNotFound {
             await MainActor.run {
                 self.errorMessage = "Lyrics not available for this track"
                 self.isLoading = false
             }
-        } catch LyricsError.invalidAccessToken {
+        } catch LyricsError.noLyricsAvailable {
             await MainActor.run {
-                self.errorMessage = "Invalid Genius API token"
+                self.errorMessage = "No lyrics available for this track"
                 self.isLoading = false
             }
         } catch {
             await MainActor.run {
-                self.errorMessage = "Failed to fetch lyrics"
+                self.errorMessage = "Failed to fetch lyrics: \(error.localizedDescription)"
                 self.isLoading = false
             }
         }
+    }
+}
+
+// MARK: - Custom Spinner
+struct CustomSpinner: View {
+    @State private var isAnimating = false
+
+    var body: some View {
+        Circle()
+            .trim(from: 0, to: 0.7)
+            .stroke(Color.white, lineWidth: 4)
+            .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
+            .animation(
+                Animation.linear(duration: 1)
+                    .repeatForever(autoreverses: false),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
     }
 }
 
@@ -292,5 +313,5 @@ struct LyricsView: View {
     let service = LyricsService()
 
     return LyricsView(spotifyMonitor: monitor, lyricsService: service)
-        .frame(width: 400, height: 600)
+        .frame(width: 375, height: 650)
 }

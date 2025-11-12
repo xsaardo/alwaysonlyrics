@@ -8,6 +8,12 @@ class UserDefaultsManager {
 
     private let defaults = UserDefaults.standard
 
+    // MARK: - Constants
+    private enum Constants {
+        static let defaultWindowWidth: CGFloat = 375
+        static let defaultWindowHeight: CGFloat = 650
+    }
+
     // MARK: - UserDefaults Keys
     private enum Keys {
         static let windowX = "windowX"
@@ -46,8 +52,8 @@ class UserDefaultsManager {
 
     /// Get default window frame (centered on main screen)
     private func defaultWindowFrame() -> NSRect {
-        let width = Config.defaultWindowWidth
-        let height = Config.defaultWindowHeight
+        let width = Constants.defaultWindowWidth
+        let height = Constants.defaultWindowHeight
 
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
