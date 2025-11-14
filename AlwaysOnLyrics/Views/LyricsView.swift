@@ -240,6 +240,13 @@ struct LyricsView: View {
 
         currentTrack = track
 
+        // Check if artist name is empty (podcasts/audiobooks don't have artists)
+        if track.artist.trimmingCharacters(in: .whitespaces).isEmpty {
+            lyrics = ""
+            errorMessage = "Lyrics are not available for podcasts and audiobooks"
+            return
+        }
+
         if isDifferentSong {
             // New song: clear old lyrics and fetch new ones
             lyrics = ""
@@ -284,6 +291,16 @@ struct LyricsView: View {
 
             await MainActor.run {
                 self.lyrics = fetchedLyrics
+                self.isLoading = false
+            }
+        } catch LyricsError.instrumental {
+            // Track is instrumental
+            guard isCurrentTrack(track) else {
+                return
+            }
+
+            await MainActor.run {
+                self.errorMessage = "This track is instrumental"
                 self.isLoading = false
             }
         } catch LyricsError.trackNotFound {

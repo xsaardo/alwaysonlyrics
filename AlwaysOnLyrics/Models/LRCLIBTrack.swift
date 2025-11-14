@@ -26,9 +26,6 @@ struct LRCLIBTrack: Codable {
         if let plain = plainLyrics, !plain.isEmpty {
             return plain
         }
-        if instrumental {
-            return "This track is instrumental (no lyrics)"
-        }
         return nil
     }
 }

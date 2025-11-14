@@ -53,7 +53,6 @@ class SpotifyMonitor: ObservableObject {
 
         // Extract track information from notification
         guard let trackName = userInfo["Name"] as? String,
-              let artistName = userInfo["Artist"] as? String,
               let playerStateString = userInfo["Player State"] as? String else {
             // Notification doesn't contain track info, Spotify might have stopped
             DispatchQueue.main.async {
@@ -62,6 +61,9 @@ class SpotifyMonitor: ObservableObject {
             }
             return
         }
+
+        // Artist name is optional (podcasts/audiobooks may not have one)
+        let artistName = userInfo["Artist"] as? String ?? ""
 
         // Extract additional info from notification
         let albumName = userInfo["Album"] as? String ?? "Unknown Album"
