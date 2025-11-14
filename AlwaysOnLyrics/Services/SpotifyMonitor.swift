@@ -54,11 +54,8 @@ class SpotifyMonitor: ObservableObject {
         // Extract track information from notification
         guard let trackName = userInfo["Name"] as? String,
               let playerStateString = userInfo["Player State"] as? String else {
-            // Notification doesn't contain track info, Spotify might have stopped
-            DispatchQueue.main.async {
-                self.spotifyRunning = false
-                self.currentTrack = nil
-            }
+            // Notification doesn't contain track info - could be a transition state
+            // Don't mark Spotify as not running, just ignore this notification
             return
         }
 
