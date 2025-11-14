@@ -60,40 +60,8 @@ class LyricsService {
             } else {
                 throw LyricsError.noLyricsAvailable
             }
-
         } catch LRCLIBAPIError.trackNotFound {
-            // Step 2: Fallback to search if exact match not found
-            do {
-                let searchResults = try await apiClient.searchLyrics(
-                    artist: artist,
-                    trackName: songTitle
-                )
-                
-                // Use first result
-                guard let firstResult = searchResults.first else {
-                    throw LyricsError.trackNotFound
-                }
-                
-                // Check if track is instrumental
-                if firstResult.instrumental {
-                    throw LyricsError.instrumental
-                }
-                
-                if let lyrics = firstResult.plainLyrics, !lyrics.isEmpty {
-                    return lyrics
-                } else {
-                    throw LyricsError.noLyricsAvailable
-                }
-                
-            } catch let lyricsError as LyricsError {
-                // Re-throw our own errors (instrumental, noLyricsAvailable, etc.)
-                throw lyricsError
-            } catch LRCLIBAPIError.trackNotFound {
-                throw LyricsError.trackNotFound
-            } catch {
-                // Other errors - search failed
-                throw LyricsError.apiError
-            }
+            throw LyricsError.trackNotFound
         } catch let lyricsError as LyricsError {
             throw lyricsError
         } catch {

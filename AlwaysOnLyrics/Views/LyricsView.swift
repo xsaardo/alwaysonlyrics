@@ -60,11 +60,15 @@ struct LyricsView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                         .lineLimit(2)
+                        .truncationMode(.tail)
+                        .help(track.title)
 
                     Text("\(track.artist) • \(track.album)")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .lineLimit(1)
+                        .truncationMode(.tail)
+                        .help("\(track.artist) • \(track.album)")
                 }
             } else if !spotifyMonitor.spotifyRunning {
                 // Fallback icon when Spotify not running
