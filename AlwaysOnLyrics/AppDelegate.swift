@@ -7,6 +7,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Properties
     private var statusItem: NSStatusItem!
     private var lyricsWindow: LyricsWindow?
+    private var preferencesWindow: NSWindow?
     private var spotifyMonitor: SpotifyMonitor!
     private var lyricsService: LyricsService!
     private var statusBarMenu: NSMenu!
@@ -100,6 +101,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusBarMenu.addItem(NSMenuItem.separator())
 
+        // Preferences menu item
+        let preferencesItem = NSMenuItem(
+            title: "Preferences...",
+            action: #selector(openPreferences),
+            keyEquivalent: ","
+        )
+        statusBarMenu.addItem(preferencesItem)
+
+        statusBarMenu.addItem(NSMenuItem.separator())
+
         // Quit menu item
         let quitItem = NSMenuItem(
             title: "Quit",
@@ -158,6 +169,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleLyricsWindow() {
         lyricsWindow?.toggleVisibility()
+    }
+
+    @objc private func openPreferences() {
+        if let window = preferencesWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            let preferencesView = PreferencesWindow()
+            let hostingController = NSHostingController(rootView: preferencesView)
+
+            let window = NSWindow(contentViewController: hostingController)
+            window.title = "Preferences"
+            window.styleMask = [.titled, .closable]
+            window.center()
+            window.isReleasedWhenClosed = false
+            window.makeKeyAndOrderFront(nil)
+
+            preferencesWindow = window
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     @objc private func quitApp() {

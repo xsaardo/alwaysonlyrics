@@ -104,8 +104,8 @@ class SpotifyMonitor: ObservableObject {
             if it is running then
                 try
                     return artwork url of current track
-                on error
-                    return ""
+                on error errMsg
+                    return errMsg
                 end try
             else
                 return ""
