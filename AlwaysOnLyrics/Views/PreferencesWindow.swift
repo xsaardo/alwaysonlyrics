@@ -86,18 +86,7 @@ struct PreferencesWindow: View {
 
                 Slider(value: $settings.fontSize, in: 10...24, step: 1)
                     .help("Adjust lyrics text size")
-
-                HStack {
-                    Text("Small")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("Large")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
             }
-            .padding(.bottom, 8)
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -111,17 +100,8 @@ struct PreferencesWindow: View {
 
                 Slider(value: $settings.lineSpacing, in: 0...16, step: 2)
                     .help("Adjust space between lyrics lines")
-
-                HStack {
-                    Text("Compact")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("Relaxed")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
             }
+            .padding(.bottom, 8)
         }
     }
 

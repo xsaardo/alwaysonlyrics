@@ -5,6 +5,7 @@ struct LyricsView: View {
 
     // MARK: - Observed Objects
     @ObservedObject var spotifyMonitor: SpotifyMonitor
+    @ObservedObject var settings = AppSettings.shared
 
     // MARK: - Services
     let lyricsService: LyricsService
@@ -216,9 +217,9 @@ struct LyricsView: View {
     // MARK: - Lyrics View
     private var lyricsView: some View {
         Text(lyrics)
-            .font(.system(size: 14))
+            .font(.system(size: settings.fontSize))
             .foregroundColor(.white)
-            .lineSpacing(6)
+            .lineSpacing(settings.lineSpacing)
             .frame(maxWidth: .infinity, alignment: .leading)
             .textSelection(.enabled)
     }
