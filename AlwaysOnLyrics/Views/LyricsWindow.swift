@@ -1,16 +1,18 @@
 import AppKit
 import SwiftUI
+import Combine
 
 /// Custom NSWindow subclass for always-on-top lyrics display
 class LyricsWindow: NSWindow {
 
     // MARK: - Properties
-    private let userDefaultsManager = UserDefaultsManager.shared
+    private let settings = AppSettings.shared
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Initialization
     init(spotifyMonitor: SpotifyMonitor, lyricsService: LyricsService) {
         // Load saved frame or use default
-        let frame = userDefaultsManager.loadWindowFrame()
+        let frame = settings.loadWindowFrame()
 
         // Initialize window with saved/default frame
         super.init(
@@ -38,7 +40,7 @@ class LyricsWindow: NSWindow {
         // setupVisualEffectBackground()
 
         // Restore visibility state
-        let shouldBeVisible = userDefaultsManager.loadWindowVisible()
+        let shouldBeVisible = settings.loadWindowVisible()
         if shouldBeVisible {
             self.makeKeyAndOrderFront(nil)
         }
@@ -49,8 +51,8 @@ class LyricsWindow: NSWindow {
         // Set window title
         self.title = "Lyrics"
 
-        // Always-on-top behavior
-        self.level = .floating
+        // Always-on-top behavior (based on settings)
+        updateWindowLevel()
 
         // Allow window to be movable by background
         self.isMovableByWindowBackground = true
@@ -58,6 +60,9 @@ class LyricsWindow: NSWindow {
         // Appearance
         self.backgroundColor = .clear
         self.isOpaque = false
+
+        // Opacity (based on settings)
+        updateWindowOpacity()
 
         // Maintain aspect ratio option
         self.titlebarAppearsTransparent = false
@@ -82,6 +87,33 @@ class LyricsWindow: NSWindow {
             name: NSWindow.didMoveNotification,
             object: self
         )
+
+        // Observe settings changes
+        observeSettings()
+    }
+
+    // MARK: - Settings Observation
+
+    private func observeSettings() {
+        // Observe any settings changes (fires after value is updated)
+        settings.objectWillChange
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                // Update window properties based on current settings
+                self.updateWindowLevel()
+                self.updateWindowOpacity()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func updateWindowLevel() {
+        // When "always on top" is enabled, use floating level (stays on top)
+        // When disabled, use normal level (regular window behavior)
+        self.level = settings.alwaysOnTop ? .floating : .normal
+    }
+
+    private func updateWindowOpacity() {
+        self.alphaValue = CGFloat(settings.windowOpacity)
     }
 
     // MARK: - Visual Effect Background
@@ -103,7 +135,7 @@ class LyricsWindow: NSWindow {
     // MARK: - Window Lifecycle
     override func close() {
         // Save visibility state as hidden
-        userDefaultsManager.saveWindowVisible(false)
+        settings.saveWindowVisible(false)
         super.close()
     }
 
@@ -121,18 +153,18 @@ class LyricsWindow: NSWindow {
     }
 
     private func saveFrame() {
-        userDefaultsManager.saveWindowFrame(self.frame)
+        settings.saveWindowFrame(self.frame)
     }
 
     // MARK: - Visibility Management
     func show() {
         self.makeKeyAndOrderFront(nil)
-        userDefaultsManager.saveWindowVisible(true)
+        settings.saveWindowVisible(true)
     }
 
     func hide() {
         self.orderOut(nil)
-        userDefaultsManager.saveWindowVisible(false)
+        settings.saveWindowVisible(false)
     }
 
     func toggleVisibility() {

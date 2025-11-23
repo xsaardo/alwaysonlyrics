@@ -7,6 +7,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Properties
     private var statusItem: NSStatusItem!
     private var lyricsWindow: LyricsWindow?
+    private var preferencesWindow: NSWindow?
     private var spotifyMonitor: SpotifyMonitor!
     private var lyricsService: LyricsService!
     private var statusBarMenu: NSMenu!
@@ -18,6 +19,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Initialize services
         setupServices()
+
+        // Setup custom main menu (to override default preferences)
+        setupMainMenu()
 
         // Setup menu bar icon
         setupMenuBar()
@@ -71,6 +75,64 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         lyricsService = LyricsService()
     }
 
+    // MARK: - Main Menu Setup
+    private func setupMainMenu() {
+        let mainMenu = NSMenu()
+
+        // App menu (first menu with app name)
+        let appMenu = NSMenu()
+        let appMenuItem = NSMenuItem()
+        appMenuItem.submenu = appMenu
+
+        // Preferences menu item (Cmd+,)
+        let preferencesItem = NSMenuItem(
+            title: "Preferences...",
+            action: #selector(openPreferences),
+            keyEquivalent: ","
+        )
+        appMenu.addItem(preferencesItem)
+
+        appMenu.addItem(NSMenuItem.separator())
+
+        // Quit menu item (Cmd+Q)
+        let quitItem = NSMenuItem(
+            title: "Quit AlwaysOnLyrics",
+            action: #selector(quitApp),
+            keyEquivalent: "q"
+        )
+        appMenu.addItem(quitItem)
+
+        mainMenu.addItem(appMenuItem)
+
+        // File menu (for Close command)
+        let fileMenu = NSMenu(title: "File")
+        let fileMenuItem = NSMenuItem()
+        fileMenuItem.submenu = fileMenu
+
+        // Toggle lyrics window menu item (Cmd+Shift+L)
+        let toggleLyricsItem = NSMenuItem(
+            title: "Toggle Lyrics Window",
+            action: #selector(toggleLyricsWindow),
+            keyEquivalent: "l"
+        )
+        toggleLyricsItem.keyEquivalentModifierMask = [.command, .shift]
+        fileMenu.addItem(toggleLyricsItem)
+
+        fileMenu.addItem(NSMenuItem.separator())
+
+        // Close window menu item (Cmd+W)
+        let closeItem = NSMenuItem(
+            title: "Close Window",
+            action: #selector(NSWindow.performClose(_:)),
+            keyEquivalent: "w"
+        )
+        fileMenu.addItem(closeItem)
+
+        mainMenu.addItem(fileMenuItem)
+
+        NSApplication.shared.mainMenu = mainMenu
+    }
+
     // MARK: - Menu Bar Setup
     private func setupMenuBar() {
         // Create status item in menu bar
@@ -94,9 +156,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let toggleItem = NSMenuItem(
             title: "Toggle Lyrics Window",
             action: #selector(toggleLyricsWindow),
-            keyEquivalent: ""
+            keyEquivalent: "l"
         )
+        toggleItem.keyEquivalentModifierMask = [.command, .shift]
         statusBarMenu.addItem(toggleItem)
+
+        statusBarMenu.addItem(NSMenuItem.separator())
+
+        // Preferences menu item
+        let preferencesItem = NSMenuItem(
+            title: "Preferences...",
+            action: #selector(openPreferences),
+            keyEquivalent: ","
+        )
+        statusBarMenu.addItem(preferencesItem)
 
         statusBarMenu.addItem(NSMenuItem.separator())
 
@@ -118,6 +191,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             lyricsService: lyricsService
         )
 
+        // Prevent window from being deallocated when closed
+        lyricsWindow?.isReleasedWhenClosed = false
+
         // Set window delegate to handle close events
         lyricsWindow?.delegate = self
 
@@ -129,7 +205,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Keyboard Shortcuts
     private func setupKeyboardShortcuts() {
-        // Register Cmd+Shift+L global hotkey
+        // Register Cmd+Shift+L local hotkey (works when app windows are active)
+        // Note: Global hotkeys require Accessibility permissions which may affect App Store approval
+        // Users can always toggle via menu bar icon click or File menu
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             // Check for Cmd+Shift+L
             if event.modifierFlags.contains([.command, .shift]) &&
@@ -158,6 +236,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleLyricsWindow() {
         lyricsWindow?.toggleVisibility()
+    }
+
+    @objc private func openPreferences() {
+        if let window = preferencesWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            let preferencesView = PreferencesWindow()
+            let hostingController = NSHostingController(rootView: preferencesView)
+
+            let window = NSWindow(contentViewController: hostingController)
+            window.title = "Preferences"
+            window.styleMask = [.titled, .closable]
+            window.center()
+            window.isReleasedWhenClosed = false
+            window.makeKeyAndOrderFront(nil)
+
+            preferencesWindow = window
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     @objc private func quitApp() {

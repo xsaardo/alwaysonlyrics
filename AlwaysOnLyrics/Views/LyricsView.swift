@@ -5,6 +5,7 @@ struct LyricsView: View {
 
     // MARK: - Observed Objects
     @ObservedObject var spotifyMonitor: SpotifyMonitor
+    @ObservedObject var settings = AppSettings.shared
 
     // MARK: - Services
     let lyricsService: LyricsService
@@ -18,23 +19,19 @@ struct LyricsView: View {
 
     // MARK: - Body
     var body: some View {
-        ZStack {
-            // Background with blur effect
-            Color.black.opacity(0.85)
-                .ignoresSafeArea()
+        VStack(spacing: 0) {
+            // Header with song info
+            headerView
+                .padding(.horizontal)
 
-            VStack(spacing: 0) {
-                // Header with song info
-                headerView
+            Divider()
+                .background(Color.gray.opacity(0.3))
+                .padding(.horizontal)
 
-                Divider()
-                    .background(Color.gray.opacity(0.3))
-                    .padding(.horizontal)
-
-                // Content area
-                contentView
-            }
+            // Content area
+            contentView
         }
+        .background(Color.black) // Single background for entire view
         .onChange(of: spotifyMonitor.currentTrack) { newTrack in
             handleTrackChange(newTrack)
         }
@@ -98,8 +95,8 @@ struct LyricsView: View {
                 }
             }
         }
+        .padding(.vertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
     }
 
     // MARK: - Album Artwork View
@@ -118,7 +115,7 @@ struct LyricsView: View {
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 60, height: 60)
                             .clipShape(RoundedRectangle(cornerRadius: 6))
-                    case .failure:
+                    case .failure(let error):
                         placeholderArtwork
                     @unknown default:
                         placeholderArtwork
@@ -180,6 +177,26 @@ struct LyricsView: View {
                 }
             }
             .padding()
+            .id(contentIdentifier) // Force view recreation when content changes
+        }
+    }
+
+    // MARK: - Content Identifier
+    /// Unique identifier that changes whenever the displayed content changes
+    /// This forces SwiftUI to completely recreate the view, preventing ghosting
+    private var contentIdentifier: String {
+        if !spotifyMonitor.spotifyRunning {
+            return "no-spotify"
+        } else if currentTrack == nil {
+            return "no-track"
+        } else if isLoading {
+            return "loading-\(currentTrack?.title ?? "")"
+        } else if let error = errorMessage {
+            return "error-\(error)"
+        } else if lyrics.isEmpty {
+            return "no-lyrics-\(currentTrack?.title ?? "")"
+        } else {
+            return "lyrics-\(currentTrack?.title ?? "")-\(lyrics.prefix(50).hashValue)"
         }
     }
 
@@ -216,9 +233,9 @@ struct LyricsView: View {
     // MARK: - Lyrics View
     private var lyricsView: some View {
         Text(lyrics)
-            .font(.system(size: 14))
+            .font(.system(size: settings.fontSize))
             .foregroundColor(.white)
-            .lineSpacing(6)
+            .lineSpacing(settings.lineSpacing)
             .frame(maxWidth: .infinity, alignment: .leading)
             .textSelection(.enabled)
     }
