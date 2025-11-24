@@ -284,7 +284,7 @@ struct LyricsView: View {
     private var syncedLyricsView: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
+                LazyVStack(alignment: .leading, spacing: settings.lineSpacing) {
                     ForEach(syncedLyrics?.lines ?? []) { line in
                         LyricLineView(
                             line: line,
