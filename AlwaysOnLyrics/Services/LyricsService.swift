@@ -26,6 +26,7 @@ enum LyricsError: Error, LocalizedError {
 /// Main service for fetching lyrics from LRCLIB
 class LyricsService {
     private let apiClient: LRCLIBAPIClientProtocol
+    private let lrcParser = LRCParser()
 
     /// Initialize with dependencies (supports dependency injection for testing)
     init(apiClient: LRCLIBAPIClientProtocol? = nil) {
@@ -60,6 +61,47 @@ class LyricsService {
             } else {
                 throw LyricsError.noLyricsAvailable
             }
+        } catch LRCLIBAPIError.trackNotFound {
+            throw LyricsError.trackNotFound
+        } catch let lyricsError as LyricsError {
+            throw lyricsError
+        } catch {
+            throw LyricsError.apiError
+        }
+    }
+
+    /// Fetch synced lyrics if available
+    /// - Parameters:
+    ///   - artist: Artist name
+    ///   - songTitle: Track title
+    ///   - album: Album name
+    ///   - duration: Track duration in seconds (optional but recommended for accuracy)
+    /// - Returns: SyncedLyrics object, or nil if synced lyrics not available
+    func fetchSyncedLyrics(artist: String, songTitle: String, album: String, duration: Int?) async throws -> SyncedLyrics? {
+        do {
+            let track = try await apiClient.getLyrics(
+                artist: artist,
+                trackName: songTitle,
+                albumName: album,
+                duration: duration
+            )
+
+            // Check if track is instrumental
+            if track.instrumental {
+                throw LyricsError.instrumental
+            }
+
+            // Check if synced lyrics available
+            guard let syncedLyricsString = track.syncedLyrics,
+                  !syncedLyricsString.isEmpty else {
+                return nil
+            }
+
+            // Parse LRC format
+            let syncedLyrics = lrcParser.parse(syncedLyricsString)
+
+            return syncedLyrics.isEmpty ? nil : syncedLyrics
+
         } catch LRCLIBAPIError.trackNotFound {
             throw LyricsError.trackNotFound
         } catch let lyricsError as LyricsError {

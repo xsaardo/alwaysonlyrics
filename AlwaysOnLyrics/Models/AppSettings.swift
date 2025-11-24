@@ -95,6 +95,18 @@ class AppSettings: ObservableObject {
     }
     private var _lineSpacing: Double = 6.0
 
+    // MARK: - Lyrics Settings
+
+    var enableSyncedLyrics: Bool {
+        get { _enableSyncedLyrics }
+        set {
+            objectWillChange.send()
+            _enableSyncedLyrics = newValue
+            defaults.set(newValue, forKey: "enableSyncedLyrics")
+        }
+    }
+    private var _enableSyncedLyrics: Bool = true
+
     // MARK: - Window Position/Size Storage
 
     var windowX: Double {
@@ -159,6 +171,9 @@ class AppSettings: ObservableObject {
         }
         if let saved = defaults.object(forKey: "lineSpacing") as? Double {
             _lineSpacing = saved
+        }
+        if let saved = defaults.object(forKey: "enableSyncedLyrics") as? Bool {
+            _enableSyncedLyrics = saved
         }
 
         // Mark as initialized to allow side effects
@@ -299,5 +314,6 @@ class AppSettings: ObservableObject {
         launchAtLogin = false
         fontSize = 14.0
         lineSpacing = 6.0
+        enableSyncedLyrics = true
     }
 }

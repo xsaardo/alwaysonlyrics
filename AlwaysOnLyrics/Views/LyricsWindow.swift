@@ -88,6 +88,14 @@ class LyricsWindow: NSWindow {
             object: self
         )
 
+        // Register for screen change notifications (display switching)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenConfigurationDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+
         // Observe settings changes
         observeSettings()
     }
@@ -156,6 +164,23 @@ class LyricsWindow: NSWindow {
         settings.saveWindowFrame(self.frame)
     }
 
+    @objc private func screenConfigurationDidChange(_ notification: Notification) {
+        // Screen configuration changed (display switching, resolution change, etc.)
+        // Re-establish window state to ensure keyboard shortcuts keep working
+        if self.isVisible {
+            // Small delay to let the system finish display reconfiguration
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                guard let self = self else { return }
+
+                // Re-order window to re-establish responder chain
+                self.orderFront(nil)
+
+                // Update window level in case display change affected it
+                self.updateWindowLevel()
+            }
+        }
+    }
+
     // MARK: - Visibility Management
     func show() {
         self.makeKeyAndOrderFront(nil)
@@ -173,5 +198,15 @@ class LyricsWindow: NSWindow {
         } else {
             show()
         }
+    }
+
+    // MARK: - Window Behavior Overrides
+
+    override var canBecomeKey: Bool {
+        return true  // Allow window to become key for keyboard shortcuts
+    }
+
+    override var canBecomeMain: Bool {
+        return true  // Allow window to become main
     }
 }

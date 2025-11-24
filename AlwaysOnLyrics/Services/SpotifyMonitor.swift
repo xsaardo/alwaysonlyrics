@@ -6,6 +6,12 @@ import CoreServices
 class SpotifyMonitor: ObservableObject {
     @Published var currentTrack: Track?
     @Published var spotifyRunning: Bool = false
+    @Published var playbackPosition: Double = 0.0
+
+    private var positionTimer: Timer?  // High-frequency local timer
+    private var syncTimer: Timer?      // Periodic sync timer (every 3 seconds)
+    private var lastSyncedPosition: Double = 0.0
+    private var lastSyncTime: Date?
 
     init() {
         // No initialization needed
@@ -85,13 +91,21 @@ class SpotifyMonitor: ObservableObject {
                 album: albumName,
                 duration: durationSeconds,
                 artworkURL: artworkURL,
-                isPlaying: isPlaying
+                isPlaying: isPlaying,
+                playbackPosition: nil  // Will be populated by position tracking
             )
 
             DispatchQueue.main.async {
                 self.spotifyRunning = true
                 if self.currentTrack != trackInfo {
                     self.currentTrack = trackInfo
+                }
+
+                // Start or stop position tracking based on play state
+                if isPlaying {
+                    self.startPositionTracking()
+                } else {
+                    self.stopPositionTracking()
                 }
             }
         }
@@ -201,10 +215,112 @@ class SpotifyMonitor: ObservableObject {
         let artworkURL = components[4].isEmpty ? nil : components[4]
         let isPlaying = components[5] == "true"
 
-        return Track(title: title, artist: artist, album: album, duration: durationSeconds, artworkURL: artworkURL, isPlaying: isPlaying)
+        return Track(title: title, artist: artist, album: album, duration: durationSeconds, artworkURL: artworkURL, isPlaying: isPlaying, playbackPosition: nil)
+    }
+
+    // MARK: - Playback Position Tracking
+
+    /// Start tracking playback position with hybrid timer approach
+    func startPositionTracking() {
+        stopPositionTracking()  // Clean up existing timers
+
+        // Sync immediately to get accurate starting position
+        Task {
+            await syncPlaybackPosition()
+        }
+
+        // Start local timer for smooth updates (15 Hz = every ~67ms)
+        positionTimer = Timer.scheduledTimer(withTimeInterval: 0.067, repeats: true) { [weak self] _ in
+            self?.updateLocalPosition()
+        }
+
+        // Start sync timer (every 3 seconds)
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            Task {
+                await self?.syncPlaybackPosition()
+            }
+        }
+    }
+
+    /// Stop tracking playback position
+    func stopPositionTracking() {
+        positionTimer?.invalidate()
+        positionTimer = nil
+
+        syncTimer?.invalidate()
+        syncTimer = nil
+    }
+
+    /// Update local position estimate (called by high-frequency timer)
+    @objc private func updateLocalPosition() {
+        guard let lastSyncTime = lastSyncTime,
+              currentTrack?.isPlaying == true else {
+            return
+        }
+
+        // Calculate elapsed time since last sync
+        let elapsed = Date().timeIntervalSince(lastSyncTime)
+
+        // Estimate current position
+        let estimatedPosition = lastSyncedPosition + elapsed
+
+        DispatchQueue.main.async {
+            self.playbackPosition = estimatedPosition
+        }
+    }
+
+    /// Sync playback position with Spotify via AppleScript
+    func syncPlaybackPosition() async {
+        guard let position = getSpotifyPlaybackPosition() else {
+            return
+        }
+
+        DispatchQueue.main.async {
+            self.lastSyncedPosition = position
+            self.lastSyncTime = Date()
+            self.playbackPosition = position
+        }
+    }
+
+    /// Get current playback position from Spotify via AppleScript
+    private func getSpotifyPlaybackPosition() -> Double? {
+        let script = """
+        tell application "Spotify"
+            if it is running then
+                try
+                    set pos to player position
+                    return pos
+                on error errMsg
+                    return ""
+                end try
+            else
+                return ""
+            end if
+        end tell
+        """
+
+        guard let appleScript = NSAppleScript(source: script) else {
+            return nil
+        }
+
+        var error: NSDictionary?
+        let result = appleScript.executeAndReturnError(&error)
+
+        if let error = error {
+            return nil
+        }
+
+        // Check for error (empty string returned from AppleScript)
+        if let stringValue = result.stringValue, stringValue.isEmpty {
+            return nil
+        }
+
+        return result.doubleValue
     }
 
     deinit {
         stopMonitoring()
+        stopPositionTracking()
     }
 }
+

@@ -18,13 +18,17 @@ struct PreferencesWindow: View {
                 }
 
                 Section {
+                    lyricsSection
+                }
+
+                Section {
                     generalSection
                 }
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
         }
-        .frame(width: 500, height: 480)
+        .frame(width: 500, height: 560)
     }
 
     // MARK: - Window Behavior Section
@@ -102,6 +106,25 @@ struct PreferencesWindow: View {
                     .help("Adjust space between lyrics lines")
             }
             .padding(.bottom, 8)
+        }
+    }
+
+    // MARK: - Lyrics Section
+
+    private var lyricsSection: some View {
+        Group {
+            Text("Lyrics")
+                .font(.headline)
+                .foregroundColor(.primary)
+                .padding(.top, 8)
+
+            Toggle("Show synced lyrics when available", isOn: $settings.enableSyncedLyrics)
+                .help("Display time-synchronized lyrics that highlight and scroll automatically")
+
+            Text("When disabled, plain text lyrics will be displayed")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.bottom, 8)
         }
     }
 
