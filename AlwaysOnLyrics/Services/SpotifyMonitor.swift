@@ -48,6 +48,16 @@ class SpotifyMonitor: ObservableObject {
         DispatchQueue.main.async {
             self.spotifyRunning = true
             self.currentTrack = trackInfo
+
+            // Start position tracking if track is playing
+            if trackInfo.isPlaying {
+                self.startPositionTracking()
+            } else {
+                // Track is paused - sync position once to show correct paused position
+                Task {
+                    await self.syncPlaybackPosition()
+                }
+            }
         }
     }
 
@@ -105,7 +115,11 @@ class SpotifyMonitor: ObservableObject {
                 if isPlaying {
                     self.startPositionTracking()
                 } else {
-                    self.stopPositionTracking()
+                    // When paused, sync position one final time before stopping tracking
+                    Task {
+                        await self.syncPlaybackPosition()
+                        self.stopPositionTracking()
+                    }
                 }
             }
         }

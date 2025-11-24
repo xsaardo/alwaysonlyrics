@@ -297,6 +297,20 @@ struct LyricsView: View {
                 .padding()
                 .textSelection(.enabled)  // Enable text selection for keyboard shortcut support
             }
+            .onAppear {
+                // Initial scroll when view appears
+                scrollToCurrentLine(proxy: proxy)
+            }
+            .onChange(of: syncedLyrics?.count) { _ in
+                // Scroll when synced lyrics first load or change
+                scrollToCurrentLine(proxy: proxy, delay: 0.2)
+            }
+            .onChange(of: spotifyMonitor.playbackPosition) { position in
+                // Scroll when position is first synced (from 0.0 to actual value)
+                if position > 0 && lastAutoScrolledLineID == nil && isAutoScrollEnabled {
+                    scrollToCurrentLine(proxy: proxy, delay: 0.1)
+                }
+            }
             .onChange(of: currentLineID) { newLineID in
                 guard isAutoScrollEnabled, let newLineID = newLineID else { return }
 
@@ -312,6 +326,19 @@ struct LyricsView: View {
                     isAutoScrollEnabled = false
                 }
             )
+        }
+    }
+
+    // MARK: - Scroll Helper
+
+    private func scrollToCurrentLine(proxy: ScrollViewProxy, delay: TimeInterval = 0.1) {
+        guard isAutoScrollEnabled, let lineID = currentLineID else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                proxy.scrollTo(lineID, anchor: .center)
+            }
+            self.lastAutoScrolledLineID = lineID
         }
     }
 
