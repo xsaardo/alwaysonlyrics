@@ -1,6 +1,7 @@
 import SwiftUI
 import ServiceManagement
 import AppKit
+import OSLog
 
 /// Manages application-wide user settings with UserDefaults persistence
 class AppSettings: ObservableObject {
@@ -9,6 +10,7 @@ class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
     private let defaults = UserDefaults.standard
+    private let logger = Logger(subsystem: "com.alwaysonlyrics", category: "AppSettings")
 
     // MARK: - Constants
     private enum Constants {
@@ -95,6 +97,18 @@ class AppSettings: ObservableObject {
     }
     private var _lineSpacing: Double = 6.0
 
+    // MARK: - Lyrics Settings
+
+    var enableSyncedLyrics: Bool {
+        get { _enableSyncedLyrics }
+        set {
+            objectWillChange.send()
+            _enableSyncedLyrics = newValue
+            defaults.set(newValue, forKey: "enableSyncedLyrics")
+        }
+    }
+    private var _enableSyncedLyrics: Bool = true
+
     // MARK: - Window Position/Size Storage
 
     var windowX: Double {
@@ -160,6 +174,9 @@ class AppSettings: ObservableObject {
         if let saved = defaults.object(forKey: "lineSpacing") as? Double {
             _lineSpacing = saved
         }
+        if let saved = defaults.object(forKey: "enableSyncedLyrics") as? Bool {
+            _enableSyncedLyrics = saved
+        }
 
         // Mark as initialized to allow side effects
         isInitialized = true
@@ -178,7 +195,7 @@ class AppSettings: ObservableObject {
                     try SMAppService.mainApp.unregister()
                 }
             } catch {
-                print("Failed to update launch at login: \(error.localizedDescription)")
+                logger.error("Failed to update launch at login: \(error.localizedDescription)")
             }
         } else {
             // Fallback for older macOS versions
@@ -194,7 +211,7 @@ class AppSettings: ObservableObject {
             kLSSharedFileListSessionLoginItems.takeRetainedValue(),
             nil
         )?.takeRetainedValue() else {
-            print("Failed to get login items list")
+            logger.error("Failed to get login items list")
             return
         }
 
@@ -299,5 +316,6 @@ class AppSettings: ObservableObject {
         launchAtLogin = false
         fontSize = 14.0
         lineSpacing = 6.0
+        enableSyncedLyrics = true
     }
 }
