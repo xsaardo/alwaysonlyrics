@@ -124,22 +124,6 @@ class LyricsWindow: NSWindow {
         self.alphaValue = CGFloat(settings.windowOpacity)
     }
 
-    // MARK: - Visual Effect Background
-    private func setupVisualEffectBackground() {
-        // Create visual effect view for dark blur
-        let visualEffectView = NSVisualEffectView()
-        visualEffectView.material = .hudWindow
-        visualEffectView.blendingMode = .behindWindow
-        visualEffectView.state = .active
-
-        // Add as background
-        if let contentView = self.contentView {
-            visualEffectView.frame = contentView.bounds
-            visualEffectView.autoresizingMask = [.width, .height]
-            contentView.addSubview(visualEffectView, positioned: .below, relativeTo: nil)
-        }
-    }
-
     // MARK: - Window Lifecycle
     override func close() {
         // Save visibility state as hidden

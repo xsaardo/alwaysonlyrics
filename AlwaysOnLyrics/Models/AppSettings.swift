@@ -1,6 +1,7 @@
 import SwiftUI
 import ServiceManagement
 import AppKit
+import OSLog
 
 /// Manages application-wide user settings with UserDefaults persistence
 class AppSettings: ObservableObject {
@@ -9,6 +10,7 @@ class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
     private let defaults = UserDefaults.standard
+    private let logger = Logger(subsystem: "com.alwaysonlyrics", category: "AppSettings")
 
     // MARK: - Constants
     private enum Constants {
@@ -193,7 +195,7 @@ class AppSettings: ObservableObject {
                     try SMAppService.mainApp.unregister()
                 }
             } catch {
-                print("Failed to update launch at login: \(error.localizedDescription)")
+                logger.error("Failed to update launch at login: \(error.localizedDescription)")
             }
         } else {
             // Fallback for older macOS versions
@@ -209,7 +211,7 @@ class AppSettings: ObservableObject {
             kLSSharedFileListSessionLoginItems.takeRetainedValue(),
             nil
         )?.takeRetainedValue() else {
-            print("Failed to get login items list")
+            logger.error("Failed to get login items list")
             return
         }
 
