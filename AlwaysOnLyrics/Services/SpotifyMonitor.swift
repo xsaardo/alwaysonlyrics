@@ -148,7 +148,7 @@ class SpotifyMonitor: ObservableObject {
         var error: NSDictionary?
         let result = appleScript.executeAndReturnError(&error)
 
-        if let error = error {
+        if error != nil {
             return nil
         }
 
@@ -189,7 +189,7 @@ class SpotifyMonitor: ObservableObject {
         var error: NSDictionary?
         let result = appleScript.executeAndReturnError(&error)
 
-        if let error = error {
+        if error != nil {
             return nil
         }
 
@@ -320,7 +320,7 @@ class SpotifyMonitor: ObservableObject {
         var error: NSDictionary?
         let result = appleScript.executeAndReturnError(&error)
 
-        if let error = error {
+        if error != nil {
             return nil
         }
 

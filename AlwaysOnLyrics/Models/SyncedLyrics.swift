@@ -12,12 +12,6 @@ struct SyncedLyrics {
             .max(by: { $0.timestamp < $1.timestamp })
     }
 
-    /// Find the index of the current line
-    func currentLineIndex(at position: Double) -> Int? {
-        guard let current = currentLine(at: position) else { return nil }
-        return lines.firstIndex(of: current)
-    }
-
     /// Check if lyrics are available
     var isEmpty: Bool {
         return lines.isEmpty
