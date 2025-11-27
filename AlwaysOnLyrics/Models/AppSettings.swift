@@ -187,57 +187,16 @@ class AppSettings: ObservableObject {
     /// Updates macOS launch at login setting
     private func updateLaunchAtLogin() {
         #if !DEBUG
-        if #available(macOS 13.0, *) {
-            do {
-                if launchAtLogin {
-                    try SMAppService.mainApp.register()
-                } else {
-                    try SMAppService.mainApp.unregister()
-                }
-            } catch {
-                logger.error("Failed to update launch at login: \(error.localizedDescription)")
+        do {
+            if launchAtLogin {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
             }
-        } else {
-            // Fallback for older macOS versions
-            setLaunchAtLoginLegacy(enabled: launchAtLogin)
+        } catch {
+            logger.error("Failed to update launch at login: \(error.localizedDescription)")
         }
         #endif
-    }
-
-    /// Legacy method for launch at login on macOS < 13
-    private func setLaunchAtLoginLegacy(enabled: Bool) {
-        guard let loginItemsRef = LSSharedFileListCreate(
-            nil,
-            kLSSharedFileListSessionLoginItems.takeRetainedValue(),
-            nil
-        )?.takeRetainedValue() else {
-            logger.error("Failed to get login items list")
-            return
-        }
-
-        if enabled {
-            if let appURL = Bundle.main.bundleURL as CFURL? {
-                LSSharedFileListInsertItemURL(
-                    loginItemsRef,
-                    kLSSharedFileListItemBeforeFirst.takeRetainedValue(),
-                    nil,
-                    nil,
-                    appURL,
-                    nil,
-                    nil
-                )
-            }
-        } else {
-            if let loginItems = LSSharedFileListCopySnapshot(loginItemsRef, nil)?.takeRetainedValue() as? [LSSharedFileListItem] {
-                for item in loginItems {
-                    if let itemURL = LSSharedFileListItemCopyResolvedURL(item, 0, nil)?.takeRetainedValue() as URL? {
-                        if itemURL.path == Bundle.main.bundleURL.path {
-                            LSSharedFileListItemRemove(loginItemsRef, item)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     /// Save current window position

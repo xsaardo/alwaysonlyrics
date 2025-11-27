@@ -44,10 +44,10 @@ struct LyricsView: View {
             }
         }
         .background(Color.black) // Single background for entire view
-        .onChange(of: spotifyMonitor.currentTrack) { newTrack in
+        .onChange(of: spotifyMonitor.currentTrack) { oldTrack, newTrack in
             handleTrackChange(newTrack)
         }
-        .onChange(of: settings.enableSyncedLyrics) { _ in
+        .onChange(of: settings.enableSyncedLyrics) {
             // Re-fetch lyrics when setting changes
             if let track = currentTrack {
                 handleTrackChange(track)
@@ -133,7 +133,7 @@ struct LyricsView: View {
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 60, height: 60)
                             .clipShape(RoundedRectangle(cornerRadius: 6))
-                    case .failure(let error):
+                    case .failure(_):
                         placeholderArtwork
                     @unknown default:
                         placeholderArtwork
@@ -301,17 +301,17 @@ struct LyricsView: View {
                 // Initial scroll when view appears
                 scrollToCurrentLine(proxy: proxy)
             }
-            .onChange(of: syncedLyrics?.count) { _ in
+            .onChange(of: syncedLyrics?.count) {
                 // Scroll when synced lyrics first load or change
                 scrollToCurrentLine(proxy: proxy, delay: 0.2)
             }
-            .onChange(of: spotifyMonitor.playbackPosition) { position in
+            .onChange(of: spotifyMonitor.playbackPosition) { oldPosition, position in
                 // Scroll when position is first synced (from 0.0 to actual value)
                 if position > 0 && lastAutoScrolledLineID == nil && isAutoScrollEnabled {
                     scrollToCurrentLine(proxy: proxy, delay: 0.1)
                 }
             }
-            .onChange(of: currentLineID) { newLineID in
+            .onChange(of: currentLineID) { oldLineID, newLineID in
                 guard isAutoScrollEnabled, let newLineID = newLineID else { return }
 
                 // Auto-scroll to current line
