@@ -14,6 +14,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - App Lifecycle
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Hide the default empty window created by WindowGroup
+        if let window = NSApplication.shared.windows.first {
+            window.close()
+        }
+
         // Request automation permission explicitly
         requestAutomationPermission()
 
@@ -39,6 +44,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         // Stop monitoring
         spotifyMonitor.stopMonitoring()
+
+        // Remove notification observers
+        NotificationCenter.default.removeObserver(self)
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -90,6 +98,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             action: #selector(openPreferences),
             keyEquivalent: ","
         )
+        preferencesItem.target = self
         appMenu.addItem(preferencesItem)
 
         appMenu.addItem(NSMenuItem.separator())
@@ -100,6 +109,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             action: #selector(quitApp),
             keyEquivalent: "q"
         )
+        quitItem.target = self
         appMenu.addItem(quitItem)
 
         mainMenu.addItem(appMenuItem)
@@ -116,6 +126,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             keyEquivalent: "l"
         )
         toggleLyricsItem.keyEquivalentModifierMask = [.command, .shift]
+        toggleLyricsItem.target = self
         fileMenu.addItem(toggleLyricsItem)
 
         fileMenu.addItem(NSMenuItem.separator())
@@ -205,17 +216,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Keyboard Shortcuts
     private func setupKeyboardShortcuts() {
-        // Register Cmd+Shift+L local hotkey (works when app windows are active)
-        // Note: Global hotkeys require Accessibility permissions which may affect App Store approval
-        // Users can always toggle via menu bar icon click or File menu
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            // Check for Cmd+Shift+L
-            if event.modifierFlags.contains([.command, .shift]) &&
-               event.charactersIgnoringModifiers == "l" {
-                self?.toggleLyricsWindow()
-                return nil // Event handled
-            }
-            return event // Pass through
+        // Menu keyboard shortcuts should work automatically through NSMenu
+        // But we need to ensure the responder chain is properly set up
+
+        // Listen for screen configuration changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenConfigurationDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+    }
+
+    @objc private func screenConfigurationDidChange(_ notification: Notification) {
+        // Screen configuration changed - menu shortcuts stop working
+        // Rebuild the entire menu to re-establish responder chain
+
+        // Small delay to let system finish reconfiguration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self = self else { return }
+
+            // Completely rebuild the menu - this reestablishes all shortcuts
+            self.setupMainMenu()
         }
     }
 

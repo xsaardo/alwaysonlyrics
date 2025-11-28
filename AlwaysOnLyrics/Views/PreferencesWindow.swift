@@ -28,7 +28,7 @@ struct PreferencesWindow: View {
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
         }
-        .frame(width: 500, height: 560)
+        .frame(width: 500, height: 750)
     }
 
     // MARK: - Window Behavior Section

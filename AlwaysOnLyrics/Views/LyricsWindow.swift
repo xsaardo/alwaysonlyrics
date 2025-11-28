@@ -150,17 +150,39 @@ class LyricsWindow: NSWindow {
 
     @objc private func screenConfigurationDidChange(_ notification: Notification) {
         // Screen configuration changed (display switching, resolution change, etc.)
-        // Re-establish window state to ensure keyboard shortcuts keep working
-        if self.isVisible {
-            // Small delay to let the system finish display reconfiguration
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                guard let self = self else { return }
+        // Validate window is still visible on an available screen
+        guard self.isVisible else { return }
 
-                // Re-order window to re-establish responder chain
-                self.orderFront(nil)
+        // Small delay to let the system finish display reconfiguration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self = self else { return }
+            self.validateWindowPosition()
+        }
+    }
 
-                // Update window level in case display change affected it
-                self.updateWindowLevel()
+    private func validateWindowPosition() {
+        // Check if window is still on a visible screen
+        let windowFrame = self.frame
+        var isOnScreen = false
+
+        for screen in NSScreen.screens {
+            if screen.visibleFrame.intersects(windowFrame) {
+                isOnScreen = true
+                break
+            }
+        }
+
+        // If window is completely off-screen, move it to the main screen
+        if !isOnScreen {
+            if let mainScreen = NSScreen.main {
+                let screenFrame = mainScreen.visibleFrame
+                var newFrame = windowFrame
+
+                // Center the window on the main screen
+                newFrame.origin.x = screenFrame.midX - newFrame.width / 2
+                newFrame.origin.y = screenFrame.midY - newFrame.height / 2
+
+                self.setFrame(newFrame, display: true)
             }
         }
     }
