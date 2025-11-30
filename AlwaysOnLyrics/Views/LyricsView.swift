@@ -19,7 +19,6 @@ struct LyricsView: View {
     @State private var currentFetchTask: Task<Void, Never>?
 
     // Auto-scroll state
-    @State private var isAutoScrollEnabled: Bool = true
     @State private var lastAutoScrolledLineID: UUID?
 
     // MARK: - Body
@@ -33,15 +32,8 @@ struct LyricsView: View {
                 .background(Color.gray.opacity(0.3))
                 .padding(.horizontal)
 
-            // Content area with snap button overlay
-            ZStack(alignment: .bottom) {
-                contentView
-
-                // Snap-to-current button (only show when auto-scroll disabled and synced lyrics available)
-                if !isAutoScrollEnabled && syncedLyrics != nil && settings.enableSyncedLyrics {
-                    snapToCurrentButton
-                }
-            }
+            // Content area
+            contentView
         }
         .background(Color.black) // Single background for entire view
         .onChange(of: spotifyMonitor.currentTrack) { oldTrack, newTrack in
@@ -307,12 +299,12 @@ struct LyricsView: View {
             }
             .onChange(of: spotifyMonitor.playbackPosition) { oldPosition, position in
                 // Scroll when position is first synced (from 0.0 to actual value)
-                if position > 0 && lastAutoScrolledLineID == nil && isAutoScrollEnabled {
+                if position > 0 && lastAutoScrolledLineID == nil {
                     scrollToCurrentLine(proxy: proxy, delay: 0.1)
                 }
             }
             .onChange(of: currentLineID) { oldLineID, newLineID in
-                guard isAutoScrollEnabled, let newLineID = newLineID else { return }
+                guard let newLineID = newLineID else { return }
 
                 // Auto-scroll to current line
                 withAnimation(.easeOut(duration: 0.3)) {
@@ -320,19 +312,13 @@ struct LyricsView: View {
                 }
                 lastAutoScrolledLineID = newLineID
             }
-            .simultaneousGesture(
-                // Detect user scroll gesture
-                DragGesture().onChanged { _ in
-                    isAutoScrollEnabled = false
-                }
-            )
         }
     }
 
     // MARK: - Scroll Helper
 
     private func scrollToCurrentLine(proxy: ScrollViewProxy, delay: TimeInterval = 0.1) {
-        guard isAutoScrollEnabled, let lineID = currentLineID else { return }
+        guard let lineID = currentLineID else { return }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             withAnimation(.easeOut(duration: 0.3)) {
@@ -340,25 +326,6 @@ struct LyricsView: View {
             }
             self.lastAutoScrolledLineID = lineID
         }
-    }
-
-    // MARK: - Snap to Current Button
-    private var snapToCurrentButton: some View {
-        Button(action: {
-            isAutoScrollEnabled = true
-        }) {
-            HStack {
-                Image(systemName: "arrow.down.circle.fill")
-                Text("Snap to Current")
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(Color.white.opacity(0.2))
-            .foregroundColor(.white)
-            .cornerRadius(20)
-        }
-        .buttonStyle(.plain)
-        .padding(.bottom, 16)
     }
 
     // MARK: - Helper Methods
@@ -388,9 +355,6 @@ struct LyricsView: View {
         // Cancel any in-flight lyrics fetch
         currentFetchTask?.cancel()
         currentFetchTask = nil
-
-        // Reset auto-scroll when track changes
-        isAutoScrollEnabled = true
 
         guard let track = newTrack else {
             // No track available, clear everything
