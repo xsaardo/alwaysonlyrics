@@ -16,7 +16,7 @@ struct LyricsView: View {
     @State private var syncedLyrics: SyncedLyrics?
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
-    @State private var currentFetchTask: Task<Void, Never>?
+    @State private var lyricsFetchTask: Task<Void, Never>?
 
     // Auto-scroll state
     @State private var lastAutoScrolledLineID: UUID?
@@ -353,8 +353,8 @@ struct LyricsView: View {
     // MARK: - Track Change Handler
     private func handleTrackChange(_ newTrack: Track?) {
         // Cancel any in-flight lyrics fetch
-        currentFetchTask?.cancel()
-        currentFetchTask = nil
+        lyricsFetchTask?.cancel()
+        lyricsFetchTask = nil
 
         guard let track = newTrack else {
             // No track available, clear everything
@@ -383,12 +383,12 @@ struct LyricsView: View {
             // New song: clear old lyrics and fetch new ones
             lyrics = ""
             errorMessage = nil
-            currentFetchTask = Task {
+            lyricsFetchTask = Task {
                 await fetchLyrics(for: track)
             }
         } else if lyrics.isEmpty && errorMessage == nil {
             // Same song but no lyrics loaded yet: fetch them
-            currentFetchTask = Task {
+            lyricsFetchTask = Task {
                 await fetchLyrics(for: track)
             }
         }
