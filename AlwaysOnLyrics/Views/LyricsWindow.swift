@@ -105,7 +105,7 @@ class LyricsWindow: NSWindow {
     private func observeSettings() {
         // Observe any settings changes (fires after value is updated)
         settings.objectWillChange
-            .sink { [weak self] _ in
+            .sink { [weak self] (_: Void) in
                 guard let self = self else { return }
                 // Update window properties based on current settings
                 self.updateWindowLevel()
@@ -153,7 +153,7 @@ class LyricsWindow: NSWindow {
         // Re-establish window state to ensure keyboard shortcuts keep working
         if self.isVisible {
             // Small delay to let the system finish display reconfiguration
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] () -> Void in
                 guard let self = self else { return }
 
                 // Re-order window to re-establish responder chain

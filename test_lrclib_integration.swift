@@ -2,6 +2,14 @@
 
 import Foundation
 
+/// Simplified response model for LRCLIB API testing
+struct LRCLIBTestResponse: Codable {
+    let id: Int
+    let trackName: String
+    let plainLyrics: String?
+    let syncedLyrics: String?
+}
+
 print("Testing LRCLIB API Integration...")
 print(String(repeating: "=", count: 50))
 print("")
@@ -17,7 +25,7 @@ request.setValue("AlwaysOnLyrics/1.0 (https://github.com/xsaardo/alwaysonlyrics)
 let semaphore = DispatchSemaphore(value: 0)
 var testPassed = false
 
-URLSession.shared.dataTask(with: request) { data, response, error in
+URLSession.shared.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
     defer { semaphore.signal() }
 
     if let error = error {
@@ -38,14 +46,13 @@ URLSession.shared.dataTask(with: request) { data, response, error in
     }
 
     do {
-        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            print("   ✅ SUCCESS: API is accessible")
-            print("   Track ID: \(json["id"] ?? "N/A")")
-            print("   Track Name: \(json["trackName"] ?? "N/A")")
-            print("   Has Plain Lyrics: \(json["plainLyrics"] != nil)")
-            print("   Has Synced Lyrics: \(json["syncedLyrics"] != nil)")
-            testPassed = true
-        }
+        let response = try JSONDecoder().decode(LRCLIBTestResponse.self, from: data)
+        print("   ✅ SUCCESS: API is accessible")
+        print("   Track ID: \(response.id)")
+        print("   Track Name: \(response.trackName)")
+        print("   Has Plain Lyrics: \(response.plainLyrics != nil)")
+        print("   Has Synced Lyrics: \(response.syncedLyrics != nil)")
+        testPassed = true
     } catch {
         print("❌ FAILED: JSON parsing error - \(error)")
     }

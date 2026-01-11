@@ -3,6 +3,39 @@ import Combine
 import AppKit
 import CoreServices
 
+/// Represents data from Spotify's PlaybackStateChanged notification
+private struct SpotifyNotificationData {
+    let trackName: String
+    let artistName: String
+    let albumName: String
+    let duration: Int? // in seconds
+    let playerState: String
+    let isPlaying: Bool
+
+    /// Initialize from notification userInfo dictionary
+    /// - Parameter userInfo: The userInfo dictionary from NSNotification
+    /// - Returns: nil if required fields are missing
+    init?(userInfo: [AnyHashable: Any]) {
+        guard let trackName = userInfo["Name"] as? String,
+              let playerState = userInfo["Player State"] as? String else {
+            return nil
+        }
+
+        self.trackName = trackName
+        self.artistName = userInfo["Artist"] as? String ?? ""
+        self.albumName = userInfo["Album"] as? String ?? "Unknown Album"
+        self.playerState = playerState
+        self.isPlaying = (playerState == "Playing")
+
+        // Extract duration from notification (in milliseconds) and convert to seconds
+        if let durationMs = userInfo["Duration"] as? Int {
+            self.duration = Int(Double(durationMs) / 1000.0)
+        } else {
+            self.duration = nil
+        }
+    }
+}
+
 class SpotifyMonitor: ObservableObject {
     @Published var currentTrack: Track?
     @Published var spotifyRunning: Bool = false
@@ -62,33 +95,13 @@ class SpotifyMonitor: ObservableObject {
     }
 
     @objc private func handleSpotifyNotification(_ notification: Notification) {
-        // Parse Spotify notification userInfo
-        guard let userInfo = notification.userInfo as? [String: Any] else {
-            return
-        }
-
-        // Extract track information from notification
-        guard let trackName = userInfo["Name"] as? String,
-              let playerStateString = userInfo["Player State"] as? String else {
+        // Parse Spotify notification userInfo into strongly-typed struct
+        guard let userInfo = notification.userInfo,
+              let notificationData = SpotifyNotificationData(userInfo: userInfo) else {
             // Notification doesn't contain track info - could be a transition state
             // Don't mark Spotify as not running, just ignore this notification
             return
         }
-
-        // Artist name is optional (podcasts/audiobooks may not have one)
-        let artistName = userInfo["Artist"] as? String ?? ""
-
-        // Extract additional info from notification
-        let albumName = userInfo["Album"] as? String ?? "Unknown Album"
-        let isPlaying = (playerStateString == "Playing")
-
-        // Extract duration from notification (in milliseconds) and convert to seconds
-        let durationSeconds: Int? = {
-            if let durationMs = userInfo["Duration"] as? Int {
-                return Int(Double(durationMs) / 1000.0)
-            }
-            return nil
-        }()
 
         // Fetch artwork URL via AppleScript in background
         // (Artwork URL is never in the notification, but everything else is)
@@ -96,12 +109,12 @@ class SpotifyMonitor: ObservableObject {
             let artworkURL = self.getArtworkURL()
 
             let trackInfo = Track(
-                title: trackName,
-                artist: artistName,
-                album: albumName,
-                duration: durationSeconds,
+                title: notificationData.trackName,
+                artist: notificationData.artistName,
+                album: notificationData.albumName,
+                duration: notificationData.duration,
                 artworkURL: artworkURL,
-                isPlaying: isPlaying,
+                isPlaying: notificationData.isPlaying,
                 playbackPosition: nil  // Will be populated by position tracking
             )
 
@@ -112,7 +125,7 @@ class SpotifyMonitor: ObservableObject {
                 }
 
                 // Start or stop position tracking based on play state
-                if isPlaying {
+                if notificationData.isPlaying {
                     self.startPositionTracking()
                 } else {
                     // When paused, sync position one final time before stopping tracking
@@ -244,12 +257,12 @@ class SpotifyMonitor: ObservableObject {
         }
 
         // Start local timer for smooth updates (15 Hz = every ~67ms)
-        positionTimer = Timer.scheduledTimer(withTimeInterval: 0.067, repeats: true) { [weak self] _ in
+        positionTimer = Timer.scheduledTimer(withTimeInterval: 0.067, repeats: true) { [weak self] (_: Timer) in
             self?.updateLocalPosition()
         }
 
         // Start sync timer (every 3 seconds)
-        syncTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] (_: Timer) in
             Task {
                 await self?.syncPlaybackPosition()
             }
