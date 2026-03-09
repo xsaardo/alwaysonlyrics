@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>AlwaysOnLyrics Changelog</title>
+        <link>https://raw.githubusercontent.com/xsaardo/alwaysonlyrics/main/appcast.xml</link>
+        <description>Most recent updates to AlwaysOnLyrics</description>
+        <language>en</language>
+
+        <!-- Example entry - replace with actual release information -->
+        <item>
+            <title>Version 1.0</title>
+            <link>https://github.com/xsaardo/alwaysonlyrics/releases/tag/v1.0</link>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <description><![CDATA[
+                <h2>AlwaysOnLyrics 1.0</h2>
+                <ul>
+                    <li>Initial release</li>
+                    <li>Real-time Spotify lyrics display</li>
+                    <li>Synced lyrics support with auto-scroll</li>
+                    <li>Customizable appearance (opacity, font size, line spacing)</li>
+                    <li>Always-on-top floating window</li>
+                </ul>
+            ]]></description>
+            <pubDate>Mon, 02 Dec 2025 00:00:00 +0000</pubDate>
+            <enclosure
+                url="https://github.com/xsaardo/alwaysonlyrics/releases/download/v1.0/AlwaysOnLyrics-1.0.dmg"
+                sparkle:version="1"
+                sparkle:shortVersionString="1.0"
+                length="FILESIZE_PLACEHOLDER"
+                type="application/octet-stream"
+                sparkle:edSignature="SIGNATURE_PLACEHOLDER" />
+        </item>
+    </channel>
+</rss>
